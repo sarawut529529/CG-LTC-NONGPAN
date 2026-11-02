@@ -126,6 +126,7 @@ input,select,textarea{font-family:inherit;font-size:15px;}
 .btn-danger:hover{background:var(--wine);color:#fff;}
 .btn-sm{padding:6px 13px;font-size:13px;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn svg{width:16px;height:16px;flex-shrink:0;}
 
 /* ===================== CARDS ===================== */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);}
@@ -226,12 +227,14 @@ table.data tr:hover td{background:var(--surface-soft);}
 .adl-total{margin-top:14px;padding:12px 16px;background:var(--gold-soft);border-radius:var(--radius-sm);font-weight:700;color:#5A3E17;}
 .loader{width:38px;height:38px;border:4px solid var(--gold-soft);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+.v_row.row-error{outline:2px solid var(--wine);outline-offset:6px;border-radius:var(--radius-sm);background:var(--wine-soft);}
+.v_rowErr{color:var(--wine);font-size:12.5px;font-weight:600;}
 .kicker{font-size:12px;letter-spacing:.06em;color:var(--gold);font-weight:700;text-transform:uppercase;margin-bottom:4px;}
 
 /* ===================== PDF / PRINT TEMPLATE ===================== */
 .pdf-root{position:fixed;left:-9999px;top:0;}
 .report-page{
-  width:210mm;min-height:297mm;background:#fff;padding:14mm 14mm;font-family:'Sarabun',sans-serif;color:#1a1a1a;line-height:1.6;
+  width:210mm;min-height:296mm;background:#fff;padding:14mm 14mm;font-family:'Sarabun',sans-serif;color:#1a1a1a;line-height:1.6;
   page-break-after:always;position:relative;box-sizing:border-box;
 }
 .report-page:last-child{page-break-after:auto;}
@@ -256,6 +259,29 @@ table.data tr:hover td{background:var(--surface-soft);}
 .rp-bar-track{flex:1;height:13px;background:#eee;border-radius:4px;overflow:hidden;}
 .rp-bar-fill{height:100%;background:#1F3D2B;}
 .rp-bar-val{width:34px;text-align:right;font-weight:700;}
+
+/* ===================== เลือก CG / ตัวอย่างก่อนพิมพ์ ===================== */
+.cg-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+.cg-pick-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-soft);text-align:left;color:var(--ink);font-size:14.5px;}
+.cg-pick-item:hover{border-color:var(--primary);}
+.cg-pick-item.sel{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 0 0 3px var(--gold-soft);}
+.cg-pick-item .nm{font-weight:600;}
+.cg-pick-item .ct{font-size:12px;color:var(--muted);}
+.preview-backdrop{position:fixed;inset:0;z-index:150;background:#4a463c;display:flex;flex-direction:column;}
+.preview-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);}
+.preview-bar .ttl{font-family:var(--font-display);font-weight:600;color:var(--primary-dark);font-size:17px;}
+.preview-bar .sub{font-size:12.5px;color:var(--muted);}
+.preview-body{flex:1;overflow:auto;padding:20px;}
+.preview-body .report-page{margin:0 auto 20px;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+#printArea{display:none;}
+@media print{
+  @page{size:A4;margin:0;}
+  body.printing{background:#fff;}
+  body.printing > *:not(#printArea){display:none !important;}
+  body.printing #printArea{display:block !important;}
+  #printArea .report-page{margin:0;box-shadow:none;page-break-after:always;}
+  #printArea .report-page:last-child{page-break-after:auto;}
+}
 </style>
 </head>
 <body>
@@ -298,6 +324,7 @@ table.data tr:hover td{background:var(--surface-soft);}
 <div class="toast-wrap" id="toastWrap"></div>
 <div id="modalRoot"></div>
 <div class="pdf-root" id="pdfRoot"></div>
+<div id="printArea"></div>
 
 <script>
 /* ======================================================================
@@ -899,7 +926,7 @@ async function viewReport(root){
     ${isCG ? `
     <div class="card card-pad" style="margin-bottom:24px;">
       <div class="section-heading" style="margin-top:0;"><h2>บันทึกรายงานการเยี่ยมบ้านประจำเดือน</h2></div>
-      <p class="helptext" style="margin-top:-6px;">เลือกผู้มีภาวะพึ่งพิงและเดือนที่ต้องการบันทึก ระบุวันที่เยี่ยมพร้อมรูปได้หลายครั้งตามเกณฑ์ของกลุ่ม Care Plan และสามารถกลับมาแก้ไข/เพิ่มข้อมูลภายหลังได้</p>
+      <p class="helptext" style="margin-top:-6px;">เลือกผู้มีภาวะพึ่งพิงและเดือนที่ต้องการบันทึก ระบุวันที่เยี่ยมพร้อมรูปได้หลายครั้งตามเกณฑ์ของกลุ่ม Care Plan และสามารถกลับมาแก้ไข/เพิ่มข้อมูลภายหลังได้ <b style="color:var(--wine);">(ทุกครั้งที่เยี่ยมต้องแนบรูปให้ครบ มิฉะนั้นจะบันทึกไม่ได้ — หากยังไม่ได้เยี่ยมครบ ให้กด "ลบแถวนี้" ในแถวที่ไม่ใช้ แล้วกลับมาเพิ่มภายหลัง)</b></p>
       <div class="form-grid" style="margin-bottom:6px;">
         <div class="field"><label>ชื่อ CG</label><input type="text" value="${esc(state.myCg.fullName)}" disabled></div>
         <div class="field"><label>ผู้มีภาวะพึ่งพิง <span class="req">*</span></label>
@@ -1021,17 +1048,23 @@ function renderReportBody(dep, target, existing){
   `;
 }
 function reportRowHtml(r, i){
-  return `<div class="form-grid" data-row="${i}" data-photo="${esc(r.photo||'')}" style="border-bottom:1px dashed var(--border);padding-bottom:12px;margin-bottom:12px;">
-    <div class="field"><label>วันที่เยี่ยม ครั้งที่ ${i+1}</label><input type="date" class="v_rowDate" value="${esc(r.date||'')}"></div>
+  return `<div class="form-grid v_row" data-row="${i}" data-photo="${esc(r.photo||'')}" style="border-bottom:1px dashed var(--border);padding-bottom:12px;margin-bottom:12px;">
+    <div class="field"><label class="v_rowLabel">วันที่เยี่ยม ครั้งที่ ${i+1} <span class="req">*</span></label><input type="date" class="v_rowDate" value="${esc(r.date||'')}"></div>
     <div class="field">
-      <label>รูปการเยี่ยม</label>
+      <label>รูปการเยี่ยม <span class="req">*</span></label>
       <input type="file" class="v_rowPhoto" accept="image/*">
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
         <img class="photo-preview v_rowPreview" style="max-width:90px;max-height:90px;${r.photo?'':'display:none;'}" src="${r.photo||''}">
         <button type="button" class="btn btn-ghost btn-sm v_removeRow">ลบแถวนี้</button>
       </div>
+      <div class="v_rowErr"></div>
     </div>
   </div>`;
+}
+function renumberRows(){
+  $all("#v_rows > .v_row").forEach((el,i)=>{
+    el.querySelector(".v_rowLabel").innerHTML = `วันที่เยี่ยม ครั้งที่ ${i+1} <span class="req">*</span>`;
+  });
 }
 function bindRowEvents(){
   $all(".v_rowPhoto").forEach(inp=>{
@@ -1044,16 +1077,43 @@ function bindRowEvents(){
       rowEl.dataset.photo = dataUrl;
       const img = rowEl.querySelector(".v_rowPreview");
       img.src = dataUrl; img.style.display = "block";
+      clearRowError(rowEl);
     });
+  });
+  $all(".v_rowDate").forEach(inp=>{
+    if(inp.dataset.bound) return;
+    inp.dataset.bound = "1";
+    inp.addEventListener("change", e=> clearRowError(e.target.closest("[data-row]")));
   });
   $all(".v_removeRow").forEach(btn=>{
     if(btn.dataset.bound) return;
     btn.dataset.bound = "1";
     btn.addEventListener("click", e=>{
-      if($all("#v_rows > div").length<=1){ toast("ต้องมีอย่างน้อย 1 แถว","err"); return; }
+      if($all("#v_rows > .v_row").length<=1){ toast("ต้องมีอย่างน้อย 1 แถว","err"); return; }
       e.target.closest("[data-row]").remove();
+      renumberRows();
     });
   });
+}
+function clearRowError(rowEl){
+  if(!rowEl) return;
+  rowEl.classList.remove("row-error");
+  const msg = rowEl.querySelector(".v_rowErr"); if(msg) msg.textContent = "";
+}
+// ตรวจว่าทุกแถวที่แสดงอยู่มีทั้งวันที่และรูป — คืนรายการแถวที่ไม่ครบ (ว่าง = ผ่าน)
+function validateVisitRows(){
+  const problems = [];
+  $all("#v_rows > .v_row").forEach((el,i)=>{
+    clearRowError(el);
+    const hasDate = !!el.querySelector(".v_rowDate").value;
+    const hasPhoto = !!el.dataset.photo;
+    if(hasDate && hasPhoto) return;
+    const what = !hasDate && !hasPhoto ? "ยังไม่ได้ระบุวันที่และแนบรูป" : (!hasPhoto ? "ยังไม่ได้แนบรูป" : "ยังไม่ได้ระบุวันที่");
+    el.classList.add("row-error");
+    el.querySelector(".v_rowErr").textContent = `ครั้งที่ ${i+1}: ${what}`;
+    problems.push({el, no:i+1, what});
+  });
+  return problems;
 }
 function bindReportBody(dep, month, docId, existing){
   bindAdlForm("v_adl");
@@ -1079,16 +1139,22 @@ function bindReportBody(dep, month, docId, existing){
     const idx = rowsEl.children.length;
     rowsEl.insertAdjacentHTML("beforeend", reportRowHtml({date:"",photo:""}, idx));
     bindRowEvents();
+    renumberRows();
   });
   $("#v_saveBtn").addEventListener("click", ()=> saveReport(dep, month, docId, existing));
 }
 async function saveReport(dep, month, docId, existing){
   const btn = $("#v_saveBtn");
-  const rawRows = $all("#v_rows > div").map(el=>({
+  const problems = validateVisitRows();
+  if(problems.length){
+    toast(`ไม่สามารถบันทึกได้ — แนบรูป/ระบุวันที่ไม่ครบ ${problems.length} แถว (ครั้งที่ ${problems.map(p=>p.no).join(", ")}) กรุณากรอกให้ครบ หรือลบแถวที่ไม่ได้ใช้`,"err");
+    problems[0].el.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+  const rawRows = $all("#v_rows > .v_row").map(el=>({
     date: el.querySelector(".v_rowDate").value,
-    photo: el.dataset.photo || ""
-  })).filter(r=>r.date && r.photo);
-  if(!rawRows.length){ toast("กรุณาระบุวันที่เยี่ยมและแนบรูปอย่างน้อย 1 ครั้ง","err"); return; }
+    photo: el.dataset.photo
+  }));
   rawRows.sort((a,b)=>a.date.localeCompare(b.date));
   const adl = collectAdlForm("v_adl");
   const activities = $all('input[name="v_act"]:checked').map(c=>ACTIVITIES[Number(c.value)]);
@@ -1474,13 +1540,18 @@ async function viewReportsExport(root){
     </div>
 
     <div id="tab_t1" class="card card-pad">
-      <div class="form-grid">
-        <div class="field"><label>เลือก CG</label>
-          <select id="r1_cg">${cgOptions.map(c=>`<option value="${c.id}">${esc(c.fullName)}</option>`).join("")}</select></div>
+      <div class="form-grid" style="max-width:420px;">
         <div class="field"><label>เดือน</label><input type="month" id="r1_month" value="${curYm()}"></div>
-        <div class="field"><label>ผู้มีภาวะพึ่งพิง</label><select id="r1_dep"><option value="">-- ทั้งหมดของ CG นี้ --</option></select></div>
       </div>
-      <button class="btn btn-primary" style="margin-top:14px;" onclick="exportVisitReport()">${iconSvg('export')} ส่งออก PDF</button>
+      ${isCG ? `` : `
+      <div style="font-size:14px;font-weight:600;color:var(--primary-dark);margin:20px 0 10px;">เลือก CG <span style="font-weight:400;color:var(--muted);">— คลิกชื่อเพื่อดูรายชื่อผู้มีภาวะพึ่งพิงที่ดูแลทั้งหมด</span></div>
+      ${cgOptions.length ? `<div class="cg-pick">
+        ${cgOptions.map(c=>`<button type="button" class="cg-pick-item" data-cg="${c.id}" onclick="r1SelectCg('${c.id}')">
+          ${c.photo?`<img src="${c.photo}" class="avatar">`:`<div class="avatar" style="display:flex;align-items:center;justify-content:center;">👤</div>`}
+          <div><div class="nm">${esc(c.fullName)}</div><div class="ct">ดูแล ${state.dependents.filter(d=>d.cgId===c.id).length} คน</div></div>
+        </button>`).join("")}
+      </div>` : `<div class="empty-state" style="padding:24px;"><div class="ic">👥</div>ยังไม่มีข้อมูล CG</div>`}`}
+      <div id="r1_deps" style="margin-top:22px;"></div>
     </div>
 
     <div id="tab_t2" class="card card-pad" style="display:none;">
@@ -1508,12 +1579,68 @@ async function viewReportsExport(root){
     });
   });
 
-  function refreshR1Dep(){
-    const cgId = $("#r1_cg").value;
-    const deps = state.dependents.filter(d=>d.cgId===cgId);
-    $("#r1_dep").innerHTML = `<option value="">-- ทั้งหมดของ CG นี้ --</option>` + deps.map(d=>`<option value="${d.id}">${esc(d.fullName)}</option>`).join("");
+  $("#r1_month").addEventListener("change", r1RenderDeps);
+  r1CgId = null;
+  if(isCG){
+    if(state.myCg) r1SelectCg(state.myCg.id);
+    else $("#r1_deps").innerHTML = `<div class="empty-state"><div class="ic">⚠️</div>บัญชีของคุณยังไม่ถูกเชื่อมโยงกับข้อมูล CG</div>`;
+  }else{
+    $("#r1_deps").innerHTML = `<div class="empty-state" style="padding:24px;"><div class="ic">👆</div>เลือก CG ด้านบนเพื่อดูรายชื่อผู้มีภาวะพึ่งพิง</div>`;
   }
-  if($("#r1_cg")){ $("#r1_cg").addEventListener("change", refreshR1Dep); refreshR1Dep(); }
+}
+
+// ---- 5.1 เลือก CG → รายชื่อผู้มีภาวะพึ่งพิง → ตัวอย่างก่อนพิมพ์ (รายบุคคล / ทั้งหมด) ----
+let r1CgId = null;
+let r1Seq = 0;
+let visitPreviewCtx = null; // { pages, filename } ของตัวอย่างที่เปิดอยู่
+let previewSeq = 0;
+function r1SelectCg(cgId){
+  r1CgId = cgId;
+  $all(".cg-pick-item").forEach(b=> b.classList.toggle("sel", b.dataset.cg === cgId));
+  r1RenderDeps();
+}
+async function r1RenderDeps(){
+  const box = $("#r1_deps");
+  const cg = state.cgs.find(c=>c.id===r1CgId) || (state.myCg && state.myCg.id===r1CgId ? state.myCg : null);
+  if(!box || !cg) return;
+  const month = $("#r1_month").value || curYm();
+  const deps = state.dependents.filter(d=>d.cgId===cg.id).sort((a,b)=>(a.fullName||"").localeCompare(b.fullName||""));
+  const seq = ++r1Seq;
+  box.innerHTML = `<div style="text-align:center;padding:20px;"><div class="loader" style="margin:0 auto;"></div></div>`;
+
+  let counts = {};
+  try{
+    const snap = await db.collection("visitReports").where("cgId","==",cg.id).where("month","==",month).get();
+    snap.docs.forEach(s=>{ const v = s.data(); counts[v.dependentId] = (v.visits||[]).length; });
+  }catch(err){ counts = null; }
+  if(seq !== r1Seq) return; // เลือก CG/เดือนใหม่ไปแล้ว
+
+  if(!deps.length){
+    box.innerHTML = `<div class="empty-state"><div class="ic">📭</div>${esc(cg.fullName)} ยังไม่มีผู้มีภาวะพึ่งพิงในความดูแล</div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="section-heading" style="margin:0 0 6px;">
+      <h2 style="font-size:17px;">ผู้มีภาวะพึ่งพิงในความดูแลของ ${esc(cg.fullName)} (${deps.length} คน)</h2>
+      <button class="btn btn-primary btn-sm" onclick="openVisitPreview('${cg.id}')">${iconSvg('export')} ปริ้นทั้งหมด (${deps.length} คน)</button>
+    </div>
+    <div class="helptext" style="font-size:12px;color:var(--muted);margin-bottom:10px;">รายงานเดือน${fmtMonthLabel(month)} — กดปริ้นแล้วจะแสดงตัวอย่างก่อนพิมพ์เสมอ</div>
+    <div class="table-wrap"><table class="data"><thead><tr>
+      <th>#</th><th>ชื่อ-สกุล</th><th>กลุ่ม</th><th>หมู่ / บ้าน</th><th>เยี่ยมเดือนนี้</th><th></th>
+    </tr></thead><tbody>
+    ${deps.map((d,i)=>{
+      const target = GROUP_INFO[d.group]?.target || 1;
+      const cnt = counts ? (counts[d.id]||0) : null;
+      return `<tr>
+        <td>${i+1}</td>
+        <td><b>${esc(d.fullName)}</b></td>
+        <td><span class="badge ${GROUP_INFO[d.group]?.badge||''}">กลุ่ม ${esc(d.group)}</span></td>
+        <td>หมู่ ${esc(d.moo||'-')} / ${esc(d.houseName||'-')}</td>
+        <td>${cnt===null?'-':`${cnt}/${target} ครั้ง ${cnt>=target?'<span class="badge badge-approved">ครบ</span>':'<span class="badge badge-pending">ไม่ครบ</span>'}`}</td>
+        <td style="white-space:nowrap;"><button class="btn btn-outline btn-sm" onclick="openVisitPreview('${cg.id}','${d.id}')">ปริ้นรายบุคคล</button></td>
+      </tr>`;
+    }).join("")}
+    </tbody></table></div>`;
 }
 
 function reportHeader(sub, title){
@@ -1533,6 +1660,7 @@ function reportSignature(signerName, signerRole, approverName, approverRole){
     ${hasApprover? block(approverName, approverRole) : ``}
   </div>`;
 }
+const PDF_PAGES_PER_CHUNK = 4;
 async function exportPdf(containerId, filename){
   toast("กำลังสร้างไฟล์ PDF ...");
   const el = document.getElementById(containerId);
@@ -1541,12 +1669,25 @@ async function exportPdf(containerId, filename){
   const opt = {
     margin: 0, filename: filename,
     image: { type:"jpeg", quality:0.95 },
-    html2canvas: { scale:2, useCORS:true, allowTaint:false, imageTimeout:15000 },
+    html2canvas: { scale:2, useCORS:true, allowTaint:false, imageTimeout:15000, logging:false },
     jsPDF: { unit:"mm", format:"a4", orientation:"portrait" },
     pagebreak: { mode:["css"] }
   };
   try{
-    await html2pdf().set(opt).from(el).save();
+    // สร้างทีละชุดละไม่กี่หน้าแล้วต่อกันเป็น PDF เดียว — การ render ทั้งเอกสารเป็น canvas ใบเดียว
+    // จะสูงเกินขีดจำกัดของเบราว์เซอร์เมื่อมีหลายสิบหน้า (ได้ PDF ว่างเปล่า) และกินหน่วยความจำมากบนมือถือ
+    const pages = Array.from(el.children);
+    const chunks = [];
+    for(let i=0; i<pages.length; i+=PDF_PAGES_PER_CHUNK){
+      const chunk = document.createElement("div");
+      pages.slice(i, i+PDF_PAGES_PER_CHUNK).forEach(p=>chunk.appendChild(p));
+      chunks.push(chunk);
+    }
+    let worker = html2pdf().set(opt).from(chunks[0]).toPdf();
+    for(let i=1; i<chunks.length; i++){
+      worker = worker.get("pdf").then(pdf=>{ pdf.addPage(); }).from(chunks[i]).toContainer().toCanvas().toPdf();
+    }
+    await worker.save();
   }catch(err){
     console.error(err);
     toast("สร้างไฟล์ PDF ไม่สำเร็จ: " + (err.message||err), "err");
@@ -1556,61 +1697,178 @@ async function exportPdf(containerId, filename){
   }
 }
 
-async function exportVisitReport(){
-  const cgId = $("#r1_cg").value;
-  const month = $("#r1_month").value;
-  const depFilter = $("#r1_dep").value;
-  const cg = state.cgs.find(c=>c.id===cgId);
+// สร้าง HTML ของรายงานการเยี่ยมรายบุคคล (1 คน = 1 หน้า) ใช้ร่วมกันทั้งตัวอย่าง / พิมพ์ / PDF
+async function buildVisitReportPages(cg, deps, month){
+  const reportDocs = {};
+  await Promise.all(deps.map(async dep=>{
+    const snap = await db.collection("visitReports").doc(`${dep.id}_${month}`).get();
+    if(snap.exists) reportDocs[dep.id] = snap.data();
+  }));
+
+  return deps.map(dep=>{
+    const rep = reportDocs[dep.id];
+    const visits = rep ? (rep.visits||[]) : [];
+    const target = GROUP_INFO[dep.group]?.target || 1;
+    return `<div class="report-page">
+      ${reportHeader(`รายงานการเยี่ยมบ้านรายบุคคล — เดือน${fmtMonthLabel(month)}`)}
+      <div class="rp-grid">
+        <div class="k">ชื่อ-สกุล</div><div>${esc(dep.fullName)}</div>
+        <div class="k">กลุ่ม Care Plan</div><div>${GROUP_INFO[dep.group]?.label||''} (เกณฑ์ ${target} ครั้ง/เดือน)</div>
+        <div class="k">ที่อยู่</div><div>หมู่ ${esc(dep.moo||'-')} บ้าน${esc(dep.houseName||'-')}</div>
+        <div class="k">CG ผู้เยี่ยม</div><div>${esc(cg.fullName)}</div>
+        <div class="k">จำนวนครั้งที่เยี่ยม</div><div><b>${visits.length} / ${target} ครั้ง</b> ${visits.length>=target?'(ครบตามเกณฑ์)':'(ยังไม่ครบตามเกณฑ์)'}</div>
+        <div class="k">ผลประเมิน ADL</div><div>${rep&&rep.adl? adlLevelText(rep.adl.total) : 'ยังไม่ประเมิน'}</div>
+      </div>
+      <div class="rp-section-title">วันที่เยี่ยมในเดือนนี้</div>
+      <table class="rp-table">
+        <thead><tr><th style="width:110px;">วันที่</th><th>รูปการเยี่ยม</th></tr></thead>
+        <tbody>
+        ${visits.length? visits.map(v=>`<tr>
+          <td>${fmtDate(v.date)}</td>
+          <td>${v.photo?`<img src="${esc(v.photo)}" style="width:110px;height:110px;object-fit:cover;border-radius:6px;">`:'-'}</td>
+        </tr>`).join("") : `<tr><td colspan="2" style="text-align:center;color:#888;">ไม่มีการเยี่ยมในเดือนนี้</td></tr>`}
+        </tbody>
+      </table>
+      <div class="rp-section-title">กิจกรรมที่ทำ</div>
+      <p style="font-size:13px;line-height:2;margin:0 0 4px;">${rep&&rep.activities&&rep.activities.length? esc(rep.activities.join(", ")) : "-"}</p>
+      <div class="rp-section-title">บันทึกเพิ่มเติม</div>
+      <p style="font-size:13px;line-height:2;margin:0 0 4px;">${esc(rep&&rep.notes||"-")}</p>
+      ${reportSignature(cg.fullName, "ผู้บันทึกรายงาน / CG ผู้เยี่ยม", "นางสาววรรณนิศา บุญสิงห์", "ผู้รับรอง / นักวิชาการสาธารณสุขปฏิบัติการ (Care Manager)")}
+    </div>`;
+  }).join("");
+}
+
+// เปิดตัวอย่างก่อนพิมพ์: depId ว่าง = ทุกคนของ CG, มีค่า = รายบุคคล
+async function openVisitPreview(cgId, depId){
+  const cg = state.cgs.find(c=>c.id===cgId) || (state.myCg && state.myCg.id===cgId ? state.myCg : null);
   if(!cg){ toast("กรุณาเลือก CG","err"); return; }
-  let deps = state.dependents.filter(d=>d.cgId===cgId);
-  if(depFilter) deps = deps.filter(d=>d.id===depFilter);
+  const month = $("#r1_month").value || curYm();
+  let deps = state.dependents.filter(d=>d.cgId===cgId).sort((a,b)=>(a.fullName||"").localeCompare(b.fullName||""));
+  if(depId) deps = deps.filter(d=>d.id===depId);
   if(!deps.length){ toast("ไม่พบผู้มีภาวะพึ่งพิงของ CG นี้","err"); return; }
 
+  // เปิดหน้าตัวอย่างทันที (แสดงตัวโหลด) แล้วค่อยเติมรายงานเมื่อดึงข้อมูลเสร็จ — ผู้ใช้ไม่ต้องจ้องหน้าว่างระหว่างรอ
+  const seq = ++previewSeq;
+  visitPreviewCtx = null;
+  const title = depId ? `ตัวอย่างก่อนพิมพ์ — ${deps[0].fullName}` : `ตัวอย่างก่อนพิมพ์ — ผู้มีภาวะพึ่งพิงทั้งหมดของ ${cg.fullName}`;
+  $("#modalRoot").innerHTML = `<div class="preview-backdrop">
+    <div class="preview-bar">
+      <div>
+        <div class="ttl">${esc(title)}</div>
+        <div class="sub">รายงานเดือน${fmtMonthLabel(month)} · ${deps.length} คน (คนละ 1 หน้า A4)</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm pv-act" disabled onclick="printVisitPreview(this)">🖨️ พิมพ์</button>
+        <button class="btn btn-gold btn-sm pv-act" disabled onclick="downloadVisitPreviewPdf(this)">${iconSvg('export')} บันทึกเป็น PDF</button>
+        <button class="btn btn-outline btn-sm" onclick="closeVisitPreview()">ปิด</button>
+      </div>
+    </div>
+    <div class="preview-body" id="visitPreviewBody"><div id="visitPreviewPages" style="text-align:center;padding:70px 0;color:#EFE8D8;">
+      <div class="loader" style="margin:0 auto 14px;"></div>กำลังเตรียมรายงาน ...</div></div>
+  </div>`;
+  window.addEventListener("resize", fitVisitPreview);
+
+  let pages;
   try{
-    const reportDocs = {};
-    await Promise.all(deps.map(async dep=>{
-      const snap = await db.collection("visitReports").doc(`${dep.id}_${month}`).get();
-      if(snap.exists) reportDocs[dep.id] = snap.data();
-    }));
-
-    const pages = deps.map(dep=>{
-      const rep = reportDocs[dep.id];
-      const visits = rep ? (rep.visits||[]) : [];
-      const target = GROUP_INFO[dep.group]?.target || 1;
-      return `<div class="report-page">
-        ${reportHeader(`รายงานการเยี่ยมบ้านรายบุคคล — เดือน${fmtMonthLabel(month)}`)}
-        <div class="rp-grid">
-          <div class="k">ชื่อ-สกุล</div><div>${esc(dep.fullName)}</div>
-          <div class="k">กลุ่ม Care Plan</div><div>${GROUP_INFO[dep.group]?.label||''} (เกณฑ์ ${target} ครั้ง/เดือน)</div>
-          <div class="k">ที่อยู่</div><div>หมู่ ${esc(dep.moo||'-')} บ้าน${esc(dep.houseName||'-')}</div>
-          <div class="k">CG ผู้เยี่ยม</div><div>${esc(cg.fullName)}</div>
-          <div class="k">จำนวนครั้งที่เยี่ยม</div><div><b>${visits.length} / ${target} ครั้ง</b> ${visits.length>=target?'(ครบตามเกณฑ์)':'(ยังไม่ครบตามเกณฑ์)'}</div>
-          <div class="k">ผลประเมิน ADL</div><div>${rep&&rep.adl? adlLevelText(rep.adl.total) : 'ยังไม่ประเมิน'}</div>
-        </div>
-        <div class="rp-section-title">วันที่เยี่ยมในเดือนนี้</div>
-        <table class="rp-table">
-          <thead><tr><th style="width:110px;">วันที่</th><th>รูปการเยี่ยม</th></tr></thead>
-          <tbody>
-          ${visits.length? visits.map(v=>`<tr>
-            <td>${fmtDate(v.date)}</td>
-            <td>${v.photo?`<img crossorigin="anonymous" src="${v.photo}" style="width:110px;height:110px;object-fit:cover;border-radius:6px;">`:'-'}</td>
-          </tr>`).join("") : `<tr><td colspan="2" style="text-align:center;color:#888;">ไม่มีการเยี่ยมในเดือนนี้</td></tr>`}
-          </tbody>
-        </table>
-        <div class="rp-section-title">กิจกรรมที่ทำ</div>
-        <p style="font-size:13px;line-height:2;margin:0 0 4px;">${rep&&rep.activities&&rep.activities.length? esc(rep.activities.join(", ")) : "-"}</p>
-        <div class="rp-section-title">บันทึกเพิ่มเติม</div>
-        <p style="font-size:13px;line-height:2;margin:0 0 4px;">${esc(rep&&rep.notes||"-")}</p>
-        ${reportSignature(cg.fullName, "ผู้บันทึกรายงาน / CG ผู้เยี่ยม", "นางสาววรรณนิศา บุญสิงห์", "ผู้รับรอง / นักวิชาการสาธารณสุขปฏิบัติการ (Care Manager)")}
-      </div>`;
-    }).join("");
-
-    $("#pdfRoot").innerHTML = `<div id="pdfExportWrap">${pages}</div>`;
-    await exportPdf("pdfExportWrap", `รายงานการเยี่ยม_${cg.fullName}_${month}.pdf`);
+    pages = await buildVisitReportPages(cg, deps, month);
   }catch(err){
     console.error(err);
-    toast("ไม่สามารถออกรายงานได้: " + (err.message||err), "err");
+    if(seq === previewSeq) closeVisitPreview();
+    toast("ไม่สามารถเตรียมรายงานได้: " + (err.message||err), "err");
+    return;
   }
+  if(seq !== previewSeq) return; // ผู้ใช้ปิดหรือเปิดตัวอย่างอื่นไปแล้ว
+  visitPreviewCtx = {
+    pages,
+    filename: depId ? `รายงานการเยี่ยม_${deps[0].fullName}_${month}.pdf` : `รายงานการเยี่ยม_${cg.fullName}_${month}.pdf`
+  };
+  const wrap = $("#visitPreviewPages");
+  wrap.removeAttribute("style");
+  wrap.innerHTML = pages;
+  $all(".pv-act").forEach(b=> b.disabled = false);
+  fitVisitPreview();
+}
+// ย่อหน้ากระดาษให้พอดีความกว้างหน้าจอ (มือถือ/จอแคบ)
+function fitVisitPreview(){
+  const body = $("#visitPreviewBody"), wrap = $("#visitPreviewPages");
+  if(!body || !wrap) return;
+  const page = wrap.querySelector(".report-page");
+  if(!page) return;
+  wrap.style.zoom = 1;
+  wrap.style.zoom = Math.min(1, (body.clientWidth - 40) / page.offsetWidth);
+}
+function closeVisitPreview(){
+  window.removeEventListener("resize", fitVisitPreview);
+  previewSeq++;
+  visitPreviewCtx = null;
+  closeModal();
+}
+// true = รูปโหลดเสร็จและแสดงได้ / false = โหลดไม่สำเร็จ (complete แต่ไม่มีขนาด)
+function imgLoaded(img){
+  return new Promise(res=>{
+    if(img.complete) return res(img.naturalWidth > 0);
+    img.addEventListener("load", ()=>res(true), {once:true});
+    img.addEventListener("error", ()=>res(false), {once:true});
+  });
+}
+// รอให้รูปทุกรูปใน root โหลดและ decode เสร็จก่อนพิมพ์ — รูปที่พลาดจะลองโหลดซ้ำ 2 ครั้ง
+// คืนจำนวนรูปที่ยังโหลดไม่สำเร็จ (0 = พร้อมพิมพ์)
+async function waitForImages(root, timeoutMs){
+  const imgs = $all("img", root);
+  const run = async img=>{
+    let ok = await imgLoaded(img);
+    for(let t=1; !ok && t<=2; t++){
+      await new Promise(r=>setTimeout(r, 700*t));
+      const src = img.getAttribute("src");
+      img.removeAttribute("src");
+      img.src = src;
+      ok = await imgLoaded(img);
+    }
+    if(ok && img.decode) await img.decode().catch(()=>{});
+    return ok;
+  };
+  const results = await Promise.race([
+    Promise.all(imgs.map(run)),
+    new Promise(res=>setTimeout(()=>res(null), timeoutMs||60000))
+  ]);
+  if(results) return results.filter(ok=>!ok).length;
+  return imgs.filter(img=>!(img.complete && img.naturalWidth>0)).length; // หมดเวลา
+}
+const nextFrame = ()=> new Promise(res=>requestAnimationFrame(()=>res()));
+async function printVisitPreview(btn){
+  if(!visitPreviewCtx || (btn && btn.disabled)) return;
+  const area = $("#printArea");
+  const label = btn ? btn.innerHTML : "";
+  let failed = 0;
+  if(btn){ btn.disabled = true; btn.textContent = "กำลังเตรียมรูป ..."; }
+  try{
+    area.innerHTML = visitPreviewCtx.pages;
+    failed = await waitForImages(area);
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerHTML = label; }
+  }
+  if(failed && !confirm(`รูปการเยี่ยมโหลดไม่สำเร็จ ${failed} รูป (อินเทอร์เน็ตช้าหรือลิงก์รูปเสีย)\n\nกด "ตกลง" เพื่อพิมพ์ต่อโดยไม่มีรูปเหล่านั้น หรือ "ยกเลิก" เพื่อลองกดพิมพ์ใหม่อีกครั้ง`)){
+    area.innerHTML = "";
+    return;
+  }
+  document.body.classList.add("printing");
+  const cleanup = ()=>{
+    window.removeEventListener("afterprint", cleanup);
+    document.body.classList.remove("printing");
+    area.innerHTML = "";
+  };
+  window.addEventListener("afterprint", cleanup);
+  // รอให้เบราว์เซอร์จัดวางและวาดหน้าพิมพ์ (รวมรูป) ก่อน ไม่งั้นรูปอาจว่างในหน้าพิมพ์
+  await nextFrame(); await nextFrame();
+  window.print();
+}
+async function downloadVisitPreviewPdf(btn){
+  if(!visitPreviewCtx || (btn && btn.disabled)) return; // กันกดซ้ำระหว่างกำลังสร้าง
+  const label = btn ? btn.innerHTML : "";
+  if(btn){ btn.disabled = true; btn.textContent = "กำลังสร้าง PDF ..."; }
+  $("#pdfRoot").innerHTML = `<div id="pdfExportWrap">${visitPreviewCtx.pages}</div>`;
+  try{ await exportPdf("pdfExportWrap", visitPreviewCtx.filename); }catch(err){ /* exportPdf แจ้งข้อผิดพลาดแล้ว */ }
+  finally{ if(btn){ btn.disabled = false; btn.innerHTML = label; } }
 }
 
 async function exportProfileReport(){
