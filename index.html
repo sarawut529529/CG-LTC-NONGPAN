@@ -492,7 +492,7 @@ function curYm(){ return new Date().toISOString().slice(0,7); }
 function ymOf(dateStr){ return (dateStr||"").slice(0,7); }
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 
-function compressImage(file, maxW){
+function compressImage(file, maxW, quality){
   return new Promise((resolve,reject)=>{
     if(!file) return resolve(null);
     const reader = new FileReader();
@@ -504,7 +504,7 @@ function compressImage(file, maxW){
         const canvas = document.createElement("canvas");
         canvas.width=w; canvas.height=h;
         canvas.getContext("2d").drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL("image/jpeg",0.62));
+        resolve(canvas.toDataURL("image/jpeg",quality||0.62));
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -1047,6 +1047,9 @@ function renderReportBody(dep, target, existing){
     <div style="margin-top:18px;"><button class="btn btn-primary" id="v_saveBtn" type="button">บันทึกรายงานเดือนนี้</button></div>
   `;
 }
+// รูปการเยี่ยมเก็บในเอกสารรายงานโดยตรง (ไม่พึ่งโฮสต์รูปภายนอก) — เอกสาร Firestore จำกัด 1MB
+// รายงานแสดงรูปเล็ก (110px) จึงย่อเหลือ 640px ได้ ราว 40-80KB ต่อรูป
+const VISIT_PHOTO_MAXW = 640, VISIT_PHOTO_QUALITY = 0.6, VISIT_PHOTOS_MAX_BYTES = 900000;
 function reportRowHtml(r, i){
   return `<div class="form-grid v_row" data-row="${i}" data-photo="${esc(r.photo||'')}" style="border-bottom:1px dashed var(--border);padding-bottom:12px;margin-bottom:12px;">
     <div class="field"><label class="v_rowLabel">วันที่เยี่ยม ครั้งที่ ${i+1} <span class="req">*</span></label><input type="date" class="v_rowDate" value="${esc(r.date||'')}"></div>
@@ -1072,7 +1075,14 @@ function bindRowEvents(){
     inp.dataset.bound = "1";
     inp.addEventListener("change", async e=>{
       const f = e.target.files[0]; if(!f) return;
-      const dataUrl = await compressImage(f, 900);
+      let dataUrl;
+      try{
+        dataUrl = await compressImage(f, VISIT_PHOTO_MAXW, VISIT_PHOTO_QUALITY);
+      }catch(err){
+        toast("อ่านไฟล์รูปนี้ไม่ได้ กรุณาถ่ายหรือเลือกรูปใหม่ (รองรับไฟล์ JPG/PNG)","err");
+        e.target.value = "";
+        return;
+      }
       const rowEl = e.target.closest("[data-row]");
       rowEl.dataset.photo = dataUrl;
       const img = rowEl.querySelector(".v_rowPreview");
@@ -1160,11 +1170,16 @@ async function saveReport(dep, month, docId, existing){
   const activities = $all('input[name="v_act"]:checked').map(c=>ACTIVITIES[Number(c.value)]);
   const notes = $("#v_notes").value.trim();
 
-  btn.disabled = true; btn.textContent = "กำลังอัปโหลดรูป...";
+  // รูปเก่าที่เป็นลิงก์ http(s) (ImgBB) ไม่นับขนาด — นับเฉพาะรูปที่ฝังในเอกสาร
+  const photoBytes = rawRows.reduce((n,r)=> n + (/^https?:\/\//.test(r.photo) ? 0 : r.photo.length), 0);
+  if(photoBytes > VISIT_PHOTOS_MAX_BYTES){
+    toast(`รูปในรายงานเดือนนี้มีขนาดรวมใหญ่เกินไป (${Math.round(photoBytes/1024)} KB) กรุณาลดจำนวนแถว หรือเลือกรูปใหม่ที่เล็กลง`,"err");
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "กำลังบันทึก...";
   try{
-    const uploadedPhotos = await Promise.all(rawRows.map(r=>uploadToImgbb(r.photo)));
-    const visits = rawRows.map((r,i)=>({date:r.date, photo:uploadedPhotos[i]}));
-    btn.textContent = "กำลังบันทึก...";
+    const visits = rawRows.map(r=>({date:r.date, photo:r.photo}));
     const payload = {
       dependentId: dep.id, dependentName: dep.fullName, group: dep.group,
       cgId: state.myCg.id, cgUsername: state.user.username, cgName: state.myCg.fullName,
